@@ -98,10 +98,11 @@ pytest -s
 | Route | Status |
 |---|---|
 | `GET /` | Implemented — renders `landing.html` |
-| `GET /register` | Implemented — renders `register.html` |
+| `GET /register` | Implemented — renders `register.html`; redirects to `landing` if signed in |
 | `POST /register` | Implemented (Step 2) — validates, creates user, flashes success, redirects to `login` |
-| `GET /login` | Implemented — renders `login.html` |
-| `GET /logout` | Stub — Step 3 |
+| `GET /login` | Implemented — renders `login.html`; redirects to `landing` if signed in |
+| `POST /login` | Implemented (Step 3) — checks credentials, sets session `user_id`/`user_name`, redirects to `landing` |
+| `GET /logout` | Implemented (Step 3) — clears session, flashes, redirects to `login` |
 | `GET /profile` | Stub — Step 4 |
 | `GET /expenses/add` | Stub — Step 7 |
 | `GET /expenses/<id>/edit` | Stub — Step 8 |
@@ -121,5 +122,6 @@ pytest -s
 - **`database/db.py` only has the helpers listed under Architecture** — do not assume others exist until the step that implements them
 - **Never import `app` at the top of a test file** — `app.py` runs `init_db()`/`seed_db()` on import; use the `app` fixture in `tests/conftest.py` so the real `expense_tracker.db` is never touched
 - **`app.secret_key`** comes from the `SECRET_KEY` env var (dev fallback in `app.py`) — required for `flash()` and sessions
+- **Session holds only `user_id` and `user_name`** — never email/password/hash; login and logout both call `session.clear()` first. Any feature that changes the user's name must update `session["user_name"]`
 - **FK enforcement is manual** — SQLite foreign keys are off by default; `get_db()` must run `PRAGMA foreign_keys = ON` on every connection
 - The app runs on **port 5001**, not the Flask default 5000 — don't change this
