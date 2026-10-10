@@ -1,11 +1,13 @@
 import os
 
-from flask import Flask, flash, redirect, render_template, request, url_for
+from flask import Flask, flash, redirect, render_template, request, session, url_for
+from werkzeug.security import check_password_hash, generate_password_hash
 
 from database.db import create_user, get_db, get_user_by_email, init_db, seed_db
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "dev-only-insecure-secret-key")
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 
 with app.app_context():
     init_db()
@@ -16,6 +18,11 @@ def _is_valid_email(email):
     """Basic shape check: something@something.tld"""
     at = email.find("@")
     return at > 0 and "." in email[at + 1:].strip(".")
+
+
+# Checked against when the email is unknown, so failed logins take the same
+# time whether or not the account exists.
+_DUMMY_PASSWORD_HASH = generate_password_hash("spendly-dummy-password")
 
 
 # ------------------------------------------------------------------ #
@@ -29,6 +36,9 @@ def landing():
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
+    if session.get("user_id"):
+        return redirect(url_for("landing"))
+
     if request.method == "GET":
         return render_template("register.html")
 
@@ -57,9 +67,48 @@ def register():
     return redirect(url_for("login"))
 
 
-@app.route("/login")
+@app.route("/login", methods=["GET", "POST"])
 def login():
-    return render_template("login.html")
+    if session.get("user_id"):
+        return redirect(url_for("landing"))
+
+    if request.method == "GET":
+        return render_template("login.html")
+
+    email_input = request.form.get("email", "").strip()
+    email = email_input.lower()
+    password = request.form.get("password", "")
+
+    if not email or not password:
+        return render_template(
+            "login.html",
+            error="Email and password are both required.",
+            email=email_input,
+        ), 400
+
+    user = get_user_by_email(email)
+    if user is None:
+        check_password_hash(_DUMMY_PASSWORD_HASH, password)
+        valid = False
+    else:
+        valid = check_password_hash(user["password_hash"], password)
+
+    if not valid:
+        return render_template(
+            "login.html", error="Invalid email or password.", email=email_input
+        ), 401
+
+    session.clear()
+    session["user_id"] = user["id"]
+    session["user_name"] = user["name"]
+    return redirect(url_for("landing"))
+
+
+@app.route("/logout")
+def logout():
+    session.clear()
+    flash("You have been signed out", "success")
+    return redirect(url_for("login"))
 
 
 @app.route("/terms")
@@ -75,11 +124,6 @@ def privacy():
 # ------------------------------------------------------------------ #
 # Placeholder routes — students will implement these                  #
 # ------------------------------------------------------------------ #
-
-@app.route("/logout")
-def logout():
-    return "Logout — coming in Step 3"
-
 
 @app.route("/profile")
 def profile():
