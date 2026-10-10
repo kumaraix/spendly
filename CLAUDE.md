@@ -11,7 +11,8 @@ Spendly is a lightweight personal expense tracker built with Flask and SQLite.
 spendly/
 ├── app.py              # All routes — single file, no blueprints
 ├── database/
-│   └── db.py           # SQLite helpers: get_db(), init_db(), seed_db()
+│   └── db.py           # SQLite helpers: get_db(), init_db(), seed_db(),
+│                       #   get_user_by_email(), create_user()
 ├── templates/
 │   ├── base.html       # Shared layout — all templates must extend this
 │   └── *.html          # One template per page
@@ -21,6 +22,10 @@ spendly/
 │   │   └── landing.css     # Landing-page-only styles
 │   └── js/
 │       └── main.js         # Vanilla JS only
+├── tests/
+│   ├── conftest.py     # `app` fixture — patches DB_PATH to a temp file
+│   └── test_*.py       # One test file per feature
+├── pytest.ini          # pythonpath = . ; testpaths = tests
 └── requirements.txt
 ```
 
@@ -94,6 +99,7 @@ pytest -s
 |---|---|
 | `GET /` | Implemented — renders `landing.html` |
 | `GET /register` | Implemented — renders `register.html` |
+| `POST /register` | Implemented (Step 2) — validates, creates user, flashes success, redirects to `login` |
 | `GET /login` | Implemented — renders `login.html` |
 | `GET /logout` | Stub — Step 3 |
 | `GET /profile` | Stub — Step 4 |
@@ -112,6 +118,8 @@ pytest -s
 - **Never put DB logic in route functions** — it belongs in `database/db.py`
 - **Never install new packages** mid-feature without flagging it — keep `requirements.txt` in sync
 - **Never use JS frameworks** — the frontend is intentionally vanilla
-- **`database/db.py` is currently empty** — do not assume helpers exist until the step that implements them
+- **`database/db.py` only has the helpers listed under Architecture** — do not assume others exist until the step that implements them
+- **Never import `app` at the top of a test file** — `app.py` runs `init_db()`/`seed_db()` on import; use the `app` fixture in `tests/conftest.py` so the real `expense_tracker.db` is never touched
+- **`app.secret_key`** comes from the `SECRET_KEY` env var (dev fallback in `app.py`) — required for `flash()` and sessions
 - **FK enforcement is manual** — SQLite foreign keys are off by default; `get_db()` must run `PRAGMA foreign_keys = ON` on every connection
 - The app runs on **port 5001**, not the Flask default 5000 — don't change this
