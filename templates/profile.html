@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+
+{% block title %}Profile · Spendly{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/profile.css') }}">
+{% endblock %}
+
+{% block content %}
+<section class="prof-section">
+    <div class="prof-container">
+
+        <header class="prof-header">
+            <div class="prof-avatar" aria-hidden="true">{{ user.initials }}</div>
+            <div class="prof-identity">
+                <h1 class="prof-name">{{ user.name }}</h1>
+                <p class="prof-email">{{ user.email }}</p>
+                <p class="prof-meta">Member since {{ user.member_since }}</p>
+            </div>
+        </header>
+
+        <section class="prof-stats" aria-label="Spending summary">
+            <div class="prof-stat">
+                <span class="prof-stat-label">Total spent</span>
+                <span class="prof-stat-value prof-stat-value--lg">{{ stats.total_spent|inr }}</span>
+            </div>
+            <div class="prof-stat">
+                <span class="prof-stat-label">Transactions</span>
+                <span class="prof-stat-value">{{ stats.transaction_count }}</span>
+            </div>
+            <div class="prof-stat">
+                <span class="prof-stat-label">Top category</span>
+                <span class="prof-stat-value">{{ stats.top_category }}</span>
+            </div>
+        </section>
+
+        <div class="prof-grid">
+            <section class="prof-card" aria-labelledby="prof-recent-heading">
+                <h2 id="prof-recent-heading" class="prof-card-title">Recent transactions</h2>
+                {% if recent_expenses %}
+                <div class="prof-table-wrap">
+                    <table class="prof-table">
+                        <thead>
+                            <tr>
+                                <th scope="col">Date</th>
+                                <th scope="col">Description</th>
+                                <th scope="col">Category</th>
+                                <th scope="col" class="prof-num">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for expense in recent_expenses %}
+                            <tr class="prof-tx-row">
+                                <td class="prof-date">{{ expense.date }}</td>
+                                <td>{{ expense.description }}</td>
+                                <td><span class="prof-pill">{{ expense.category }}</span></td>
+                                <td class="prof-num">{{ expense.amount|inr }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="prof-empty">No expenses yet</p>
+                {% endif %}
+            </section>
+
+            <section class="prof-card" aria-labelledby="prof-cat-heading">
+                <h2 id="prof-cat-heading" class="prof-card-title">Spending by category</h2>
+                {% if category_breakdown %}
+                <ul class="prof-cats">
+                    {% for row in category_breakdown %}
+                    <li class="prof-cat-row">
+                        <span class="prof-cat-name">{{ row.category }}</span>
+                        <span class="prof-cat-amt">{{ row.total|inr }}<span class="prof-cat-pct">{{ row.percent }}%</span></span>
+                        <div class="prof-bar-track" aria-hidden="true">
+                            <div class="prof-bar" style="width: {{ row.percent }}%"></div>
+                        </div>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p class="prof-empty">No spending to break down yet</p>
+                {% endif %}
+            </section>
+        </div>
+
+    </div>
+</section>
+{% endblock %}

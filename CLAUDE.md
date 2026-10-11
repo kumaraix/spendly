@@ -97,13 +97,13 @@ pytest -s
 
 | Route | Status |
 |---|---|
-| `GET /` | Implemented — renders `landing.html` |
-| `GET /register` | Implemented — renders `register.html`; redirects to `landing` if signed in |
+| `GET /` | Implemented — renders `landing.html`; redirects to `profile` if signed in |
+| `GET /register` | Implemented — renders `register.html`; redirects to `profile` if signed in |
 | `POST /register` | Implemented (Step 2) — validates, creates user, flashes success, redirects to `login` |
-| `GET /login` | Implemented — renders `login.html`; redirects to `landing` if signed in |
-| `POST /login` | Implemented (Step 3) — checks credentials, sets session `user_id`/`user_name`, redirects to `landing` |
+| `GET /login` | Implemented — renders `login.html`; redirects to `profile` if signed in |
+| `POST /login` | Implemented (Step 3) — checks credentials, sets session `user_id`/`user_name`, redirects to `profile` |
 | `GET /logout` | Implemented (Step 3) — clears session, flashes, redirects to `login` |
-| `GET /profile` | Stub — Step 4 |
+| `GET /profile` | Implemented (Step 4) — logged-in only; renders `profile.html` with hardcoded data (name from session); DB wiring in Step 5 |
 | `GET /expenses/add` | Stub — Step 7 |
 | `GET /expenses/<id>/edit` | Stub — Step 8 |
 | `GET /expenses/<id>/delete` | Stub — Step 9 |
@@ -123,5 +123,7 @@ pytest -s
 - **Never import `app` at the top of a test file** — `app.py` runs `init_db()`/`seed_db()` on import; use the `app` fixture in `tests/conftest.py` so the real `expense_tracker.db` is never touched
 - **`app.secret_key`** comes from the `SECRET_KEY` env var (dev fallback in `app.py`) — required for `flash()` and sessions
 - **Session holds only `user_id` and `user_name`** — never email/password/hash; login and logout both call `session.clear()` first. Any feature that changes the user's name must update `session["user_name"]`
+- **Protect logged-in pages with `@login_required`** (defined in `app.py`) — it redirects to `login` when `session["user_id"]` is missing
+- **Format money with the `inr` Jinja filter** (`{{ amount|inr }}` → `₹1,23,456.50`, Indian grouping) — never `$` or `"{:,.2f}"`
 - **FK enforcement is manual** — SQLite foreign keys are off by default; `get_db()` must run `PRAGMA foreign_keys = ON` on every connection
 - The app runs on **port 5001**, not the Flask default 5000 — don't change this
