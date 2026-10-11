@@ -24,10 +24,10 @@ def test_get_login_renders_form(client):
     assert "auth-error" not in html
 
 
-def test_login_success_redirects_to_landing(client):
+def test_login_success_redirects_to_profile(client):
     resp = post_login(client)
     assert resp.status_code == 302
-    assert resp.headers["Location"] == "/"
+    assert resp.headers["Location"] == "/profile"
 
 
 def test_navbar_shows_user_after_login(client):
@@ -95,7 +95,7 @@ def test_signed_in_users_are_redirected_from_auth_pages(client, path):
     post_login(client)
     resp = client.get(path)
     assert resp.status_code == 302
-    assert resp.headers["Location"] == "/"
+    assert resp.headers["Location"] == "/profile"
 
 
 def test_signed_in_post_register_does_not_create_user(client, count_users):
@@ -107,7 +107,7 @@ def test_signed_in_post_register_does_not_create_user(client, count_users):
         "password": "supersecret1",
     })
     assert resp.status_code == 302
-    assert resp.headers["Location"] == "/"
+    assert resp.headers["Location"] == "/profile"
     assert count_users() == before
 
 
