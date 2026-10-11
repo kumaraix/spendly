@@ -4,7 +4,13 @@ from functools import wraps
 from flask import Flask, flash, redirect, render_template, request, session, url_for
 from werkzeug.security import check_password_hash, generate_password_hash
 
-from database.db import create_user, get_db, get_user_by_email, init_db, seed_db
+from database.db import create_user, get_user_by_email, init_db, seed_db
+from database.queries import (
+    get_category_breakdown,
+    get_recent_transactions,
+    get_summary_stats,
+    get_user_by_id,
+)
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "dev-only-insecure-secret-key")
@@ -51,23 +57,6 @@ def format_inr(amount):
     return f"{sign}₹{whole}.{fraction}"
 
 
-# Hardcoded profile data until Step 5 reads it from the database.
-_SAMPLE_PROFILE = {
-    "email": "demo@spendly.com",
-    "member_since": "January 2026",
-    "expenses": [
-        {"date": "2026-10-01", "description": "Electricity bill", "category": "Bills", "amount": 1850.00},
-        {"date": "2026-10-02", "description": "Groceries at local kirana", "category": "Food", "amount": 420.50},
-        {"date": "2026-10-03", "description": "Metro card recharge", "category": "Transport", "amount": 250.00},
-        {"date": "2026-10-04", "description": "Pharmacy – vitamins", "category": "Health", "amount": 680.00},
-        {"date": "2026-10-06", "description": "Movie tickets", "category": "Entertainment", "amount": 499.00},
-        {"date": "2026-10-07", "description": "T-shirt", "category": "Shopping", "amount": 1299.00},
-        {"date": "2026-10-09", "description": "Dinner with friends", "category": "Food", "amount": 350.00},
-        {"date": "2026-10-10", "description": "Gift wrapping & card", "category": "Other", "amount": 200.00},
-    ],
-}
-
-
 def _initials(name):
     words = name.split()
     if not words:
@@ -77,39 +66,34 @@ def _initials(name):
     return (words[0][0] + words[-1][0]).upper()
 
 
-def _build_profile_context(name, email, member_since, expenses):
-    """Shape user details and expenses into the context profile.html expects."""
-    total = sum(e["amount"] for e in expenses)
+# ------------------------------------------------------------------ #
+# Profile: transaction history                                        #
+# ------------------------------------------------------------------ #
 
-    by_category = {}
-    for e in expenses:
-        by_category[e["category"]] = by_category.get(e["category"], 0) + e["amount"]
-    breakdown = [
-        {
-            "category": category,
-            "total": cat_total,
-            "percent": round(cat_total / total * 100) if total else 0,
-        }
-        for category, cat_total in sorted(
-            by_category.items(), key=lambda item: item[1], reverse=True
-        )
+def _profile_recent_expenses(user_id):
+    """Recent expenses shaped for profile.html's recent_expenses."""
+    return get_recent_transactions(user_id)
+
+
+# ------------------------------------------------------------------ #
+# Profile: summary stats                                              #
+# ------------------------------------------------------------------ #
+
+def _profile_stats(user_id):
+    """Summary stats shaped for profile.html's stats."""
+    return get_summary_stats(user_id)
+
+
+# ------------------------------------------------------------------ #
+# Profile: category breakdown                                         #
+# ------------------------------------------------------------------ #
+
+def _profile_category_breakdown(user_id):
+    """Category totals shaped for profile.html's category_breakdown."""
+    return [
+        {"category": c["name"], "total": c["amount"], "percent": c["pct"]}
+        for c in get_category_breakdown(user_id)
     ]
-
-    return {
-        "user": {
-            "name": name,
-            "email": email,
-            "member_since": member_since,
-            "initials": _initials(name),
-        },
-        "stats": {
-            "total_spent": total,
-            "transaction_count": len(expenses),
-            "top_category": breakdown[0]["category"] if breakdown else "—",
-        },
-        "recent_expenses": sorted(expenses, key=lambda e: e["date"], reverse=True)[:5],
-        "category_breakdown": breakdown,
-    }
 
 
 # ------------------------------------------------------------------ #
@@ -213,13 +197,18 @@ def privacy():
 @app.route("/profile")
 @login_required
 def profile():
-    context = _build_profile_context(
-        session["user_name"],
-        _SAMPLE_PROFILE["email"],
-        _SAMPLE_PROFILE["member_since"],
-        _SAMPLE_PROFILE["expenses"],
+    user_id = session["user_id"]
+    user = get_user_by_id(user_id)
+    if user is None:
+        session.clear()
+        return redirect(url_for("login"))
+    return render_template(
+        "profile.html",
+        user={**user, "initials": _initials(user["name"])},
+        stats=_profile_stats(user_id),
+        recent_expenses=_profile_recent_expenses(user_id),
+        category_breakdown=_profile_category_breakdown(user_id),
     )
-    return render_template("profile.html", **context)
 
 
 # ------------------------------------------------------------------ #
