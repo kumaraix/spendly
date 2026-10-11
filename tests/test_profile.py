@@ -38,9 +38,9 @@ def test_profile_shows_amounts_in_inr(client):
     assert "$" not in html
 
 
-def test_profile_lists_five_recent_transactions(client):
+def test_profile_lists_recent_transactions(client):
     html = get_profile_html(client)
-    assert html.count('class="prof-tx-row"') == 5
+    assert html.count('class="prof-tx-row"') == 8
 
 
 def test_profile_shows_category_breakdown(client):

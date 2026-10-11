@@ -11,8 +11,11 @@ Spendly is a lightweight personal expense tracker built with Flask and SQLite.
 spendly/
 ├── app.py              # All routes — single file, no blueprints
 ├── database/
-│   └── db.py           # SQLite helpers: get_db(), init_db(), seed_db(),
+│   ├── db.py           # SQLite helpers: get_db(), init_db(), seed_db(),
 │                       #   get_user_by_email(), create_user()
+│   └── queries.py      # Read-only profile queries: get_user_by_id(),
+│                       #   get_summary_stats(), get_recent_transactions(),
+│                       #   get_category_breakdown()
 ├── templates/
 │   ├── base.html       # Shared layout — all templates must extend this
 │   └── *.html          # One template per page
@@ -31,7 +34,7 @@ spendly/
 
 **Where things belong:**
 - New routes → `app.py` only, no blueprints
-- DB logic → `database/db.py` only, never inline in routes
+- DB logic → `database/db.py` (writes, auth) or `database/queries.py` (read-only page queries), never inline in routes
 - New pages → new `.html` file extending `base.html`
 - Page-specific styles → new `.css` file, not inline `<style>` tags
 
@@ -103,7 +106,7 @@ pytest -s
 | `GET /login` | Implemented — renders `login.html`; redirects to `profile` if signed in |
 | `POST /login` | Implemented (Step 3) — checks credentials, sets session `user_id`/`user_name`, redirects to `profile` |
 | `GET /logout` | Implemented (Step 3) — clears session, flashes, redirects to `login` |
-| `GET /profile` | Implemented (Step 4) — logged-in only; renders `profile.html` with hardcoded data (name from session); DB wiring in Step 5 |
+| `GET /profile` | Implemented (Step 5) — logged-in only; renders `profile.html` with the user's details, stats, recent transactions and category breakdown from the DB (`database/queries.py`); stale session → cleared, redirect to `login` |
 | `GET /expenses/add` | Stub — Step 7 |
 | `GET /expenses/<id>/edit` | Stub — Step 8 |
 | `GET /expenses/<id>/delete` | Stub — Step 9 |
@@ -119,7 +122,7 @@ pytest -s
 - **Never put DB logic in route functions** — it belongs in `database/db.py`
 - **Never install new packages** mid-feature without flagging it — keep `requirements.txt` in sync
 - **Never use JS frameworks** — the frontend is intentionally vanilla
-- **`database/db.py` only has the helpers listed under Architecture** — do not assume others exist until the step that implements them
+- **`database/db.py` and `database/queries.py` only have the helpers listed under Architecture** — do not assume others exist until the step that implements them
 - **Never import `app` at the top of a test file** — `app.py` runs `init_db()`/`seed_db()` on import; use the `app` fixture in `tests/conftest.py` so the real `expense_tracker.db` is never touched
 - **`app.secret_key`** comes from the `SECRET_KEY` env var (dev fallback in `app.py`) — required for `flash()` and sessions
 - **Session holds only `user_id` and `user_name`** — never email/password/hash; login and logout both call `session.clear()` first. Any feature that changes the user's name must update `session["user_name"]`
