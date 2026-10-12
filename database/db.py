@@ -148,3 +148,29 @@ def create_user(name, email, password):
         raise
     finally:
         conn.close()
+
+
+def create_expense(user_id, amount, category, expense_date, description=None):
+    """Insert one expense for user_id.
+
+    Return the new expense's id, or None on an IntegrityError. With
+    validated input the only possible cause is the FK on user_id — the
+    user no longer exists — so callers treat None as a stale session.
+    """
+    conn = get_db()
+    try:
+        cur = conn.execute(
+            "INSERT INTO expenses (user_id, amount, category, date, description) "
+            "VALUES (?, ?, ?, ?, ?)",
+            (user_id, amount, category, expense_date, description),
+        )
+        conn.commit()
+        return cur.lastrowid
+    except sqlite3.IntegrityError:
+        conn.rollback()
+        return None
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()

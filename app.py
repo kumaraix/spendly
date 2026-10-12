@@ -1,11 +1,31 @@
+import hmac
 import os
+import re
+import secrets
 from datetime import date, timedelta
+from decimal import ROUND_HALF_UP, Decimal
 from functools import wraps
 
-from flask import Flask, flash, redirect, render_template, request, session, url_for
+from flask import (
+    Flask,
+    abort,
+    flash,
+    redirect,
+    render_template,
+    request,
+    session,
+    url_for,
+)
 from werkzeug.security import check_password_hash, generate_password_hash
 
-from database.db import create_user, get_user_by_email, init_db, seed_db
+from database.db import (
+    CATEGORIES,
+    create_expense,
+    create_user,
+    get_user_by_email,
+    init_db,
+    seed_db,
+)
 from database.queries import (
     get_category_breakdown,
     get_recent_transactions,
@@ -16,6 +36,11 @@ from database.queries import (
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "dev-only-insecure-secret-key")
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+# Forms here are a few fields; anything bigger is rejected with 413.
+app.config["MAX_CONTENT_LENGTH"] = 16 * 1024
+
+MAX_EXPENSE_AMOUNT = 100_000_000  # ₹10 crore
+MAX_DESCRIPTION_LEN = 200
 
 with app.app_context():
     init_db()
@@ -41,6 +66,22 @@ def login_required(view):
             return redirect(url_for("login"))
         return view(*args, **kwargs)
     return wrapped
+
+
+@app.template_global("csrf_token")
+def _csrf_token():
+    """Return the session's CSRF token, creating it on first use."""
+    if "csrf_token" not in session:
+        session["csrf_token"] = secrets.token_hex(16)
+    return session["csrf_token"]
+
+
+def _check_csrf():
+    """Abort with 400 unless the form's csrf_token matches the session's."""
+    expected = session.get("csrf_token", "")
+    submitted = request.form.get("csrf_token", "")
+    if not expected or not hmac.compare_digest(expected, submitted):
+        abort(400)
 
 
 @app.template_filter("inr")
@@ -150,6 +191,95 @@ def _range_label(start_date, end_date):
     if end_date:
         return f"Showing up to {_format_day(end_date)}"
     return "Showing all time"
+
+
+# ------------------------------------------------------------------ #
+# Expenses: form validation                                           #
+# ------------------------------------------------------------------ #
+
+_AMOUNT_RE = re.compile(r"[0-9]+(?:\.[0-9]+)?")
+
+
+def _parse_amount(raw):
+    """Return (amount, error); amount is rounded half-up to 2 decimals."""
+    raw = (raw or "").strip()
+    if not raw:
+        return None, "Amount is required."
+    # Plain digits only: float() would also take "1_000", "1e3", "nan", "inf".
+    if not _AMOUNT_RE.fullmatch(raw):
+        return None, "Amount must be a positive number, like 250 or 99.50."
+    amount = Decimal(raw).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    if amount <= 0:
+        return None, "Amount must be greater than 0."
+    if amount > MAX_EXPENSE_AMOUNT:
+        return None, f"Amount must be at most {format_inr(MAX_EXPENSE_AMOUNT)}."
+    return float(amount), None
+
+
+def _parse_category(raw):
+    """Return (category, error); must exactly match one of CATEGORIES."""
+    if not raw:
+        return None, "Please choose a category."
+    if raw not in CATEGORIES:
+        return None, "Please choose a valid category."
+    return raw, None
+
+
+def _parse_expense_date(raw):
+    """Return (YYYY-MM-DD, error); today or earlier only."""
+    try:
+        expense_date = _parse_iso_date(raw)
+    except ValueError:
+        return None, "Date must be a valid date (YYYY-MM-DD)."
+    if expense_date is None:
+        return None, "Date is required."
+    if expense_date > _today().isoformat():
+        return None, "Date cannot be in the future."
+    return expense_date, None
+
+
+def _parse_description(raw):
+    """Return (description or None, error)."""
+    description = (raw or "").strip()
+    if len(description) > MAX_DESCRIPTION_LEN:
+        return None, (
+            f"Description must be {MAX_DESCRIPTION_LEN} characters or fewer."
+        )
+    return description or None, None
+
+
+_EXPENSE_FIELDS = (
+    ("amount", _parse_amount),
+    ("category", _parse_category),
+    ("date", _parse_expense_date),
+    ("description", _parse_description),
+)
+
+
+def _validate_expense_form(form):
+    """Return (values, error) for an add/edit expense form.
+
+    values is {amount, category, date, description} when valid, else None;
+    error is the first failing field's message, else None.
+    """
+    values = {}
+    for name, parse in _EXPENSE_FIELDS:
+        value, error = parse(form.get(name))
+        if error:
+            return None, error
+        values[name] = value
+    return values, None
+
+
+def _render_expense_form(form, error=None, status=200):
+    """Render add_expense.html with the category list and today's date."""
+    return render_template(
+        "add_expense.html",
+        categories=CATEGORIES,
+        today=_today().isoformat(),
+        form=form,
+        error=error,
+    ), status
 
 
 # ------------------------------------------------------------------ #
@@ -315,14 +445,36 @@ def analytics():
     return render_template("analytics.html")
 
 
+@app.route("/expenses/add", methods=["GET", "POST"])
+@login_required
+def add_expense():
+    if request.method == "GET":
+        return _render_expense_form({"date": _today().isoformat()})
+
+    _check_csrf()
+    values, error = _validate_expense_form(request.form)
+    if error:
+        return _render_expense_form(request.form, error, 400)
+
+    expense_id = create_expense(
+        session["user_id"],
+        values["amount"],
+        values["category"],
+        values["date"],
+        values["description"],
+    )
+    if expense_id is None:
+        # The account behind this session no longer exists.
+        session.clear()
+        flash("Please sign in again", "error")
+        return redirect(url_for("login"))
+    flash("Expense added", "success")
+    return redirect(url_for("profile"))
+
+
 # ------------------------------------------------------------------ #
 # Placeholder routes — students will implement these                  #
 # ------------------------------------------------------------------ #
-
-
-@app.route("/expenses/add")
-def add_expense():
-    return "Add expense — coming in Step 7"
 
 
 @app.route("/expenses/<int:id>/edit")
@@ -336,4 +488,4 @@ def delete_expense(id):
 
 
 if __name__ == "__main__":
-    app.run(debug=True, port=5001)
+    app.run(debug=os.environ.get("FLASK_DEBUG") == "1", port=5001)

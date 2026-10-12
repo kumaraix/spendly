@@ -10,6 +10,8 @@
 <section class="prof-section">
     <div class="prof-container">
 
+        {% with flash_class = "prof-flash" %}{% include "_flash.html" %}{% endwith %}
+
         <header class="prof-header">
             <div class="prof-avatar" aria-hidden="true">{{ user.initials }}</div>
             <div class="prof-identity">
@@ -17,6 +19,7 @@
                 <p class="prof-email">{{ user.email }}</p>
                 <p class="prof-meta">Member since {{ user.member_since }}</p>
             </div>
+            <a class="btn-primary prof-header-action" href="{{ url_for('add_expense') }}">Add expense</a>
         </header>
 
         {% set is_filtered = start_date or end_date %}
@@ -95,7 +98,15 @@
                     </table>
                 </div>
                 {% else %}
-                <p class="prof-empty">{% if is_filtered %}No expenses in this period{% else %}No expenses yet{% endif %}</p>
+                {% if is_filtered %}
+                {% set empty_text, link_text = "No expenses in this period", "Add an expense" %}
+                {% else %}
+                {% set empty_text, link_text = "No expenses yet", "Add your first expense" %}
+                {% endif %}
+                <p class="prof-empty">
+                    {{ empty_text }}
+                    <a class="prof-empty-link" href="{{ url_for('add_expense') }}">{{ link_text }}</a>
+                </p>
                 {% endif %}
             </section>
 
