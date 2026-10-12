@@ -1,0 +1,236 @@
+/* ------------------------------------------------------------------ */
+/* Analytics — coming soon page                                        */
+/* ------------------------------------------------------------------ */
+
+/* Design greens mapped onto the Spendly accent */
+.soon-section {
+    --soon-green: var(--accent);
+    --soon-green-deep: color-mix(in srgb, var(--accent) 55%, var(--ink));
+    --soon-green-soft: color-mix(in srgb, var(--accent) 85%, var(--paper-card));
+    --soon-shadow: color-mix(in srgb, var(--ink) 10%, transparent);
+
+    padding: var(--space-6);
+}
+
+.soon-stage {
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 500px;
+    padding: var(--space-6);
+    background: linear-gradient(
+        to bottom right,
+        var(--paper),
+        color-mix(in srgb, var(--paper) 40%, var(--paper-card)),
+        var(--paper-warm)
+    );
+}
+
+/* Decorative background blobs */
+
+.soon-blob {
+    position: absolute;
+    width: 24rem;
+    height: 24rem;
+    border-radius: 50%;
+    background: var(--soon-green);
+    opacity: 0.05;
+    filter: blur(64px);
+}
+
+.soon-blob--top {
+    top: 0;
+    left: 0;
+    transform: translate(-50%, -50%);
+}
+
+.soon-blob--bottom {
+    bottom: 0;
+    right: 0;
+    transform: translate(50%, 50%);
+}
+
+/* Card */
+
+.soon-card {
+    position: relative;
+    overflow: hidden;
+    width: 100%;
+    max-width: 32rem;
+    padding: 2.5rem;
+    text-align: center;
+    background: var(--paper-card);
+    border: 1px solid var(--border-soft);
+    border-radius: 1.5rem;
+    box-shadow:
+        0 20px 25px -5px var(--soon-shadow),
+        0 8px 10px -6px var(--soon-shadow);
+}
+
+.soon-corner {
+    position: absolute;
+    width: 5rem;
+    height: 5rem;
+    opacity: 0.1;
+}
+
+.soon-corner--top {
+    top: 0;
+    right: 0;
+    background: linear-gradient(to bottom right, var(--soon-green), transparent);
+    border-bottom-left-radius: 9999px;
+}
+
+.soon-corner--bottom {
+    bottom: 0;
+    left: 0;
+    background: linear-gradient(to top right, var(--soon-green), transparent);
+    border-top-right-radius: 9999px;
+}
+
+/* Icon with glow */
+
+.soon-visual {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    margin-bottom: var(--space-6);
+}
+
+.soon-glow {
+    position: absolute;
+    width: 6rem;
+    height: 6rem;
+    border-radius: 50%;
+    background: var(--soon-green);
+    opacity: 0.2;
+    filter: blur(24px);
+}
+
+.soon-icon {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 6rem;
+    height: 6rem;
+    border-radius: 1rem;
+    background: linear-gradient(to bottom right, var(--soon-green), var(--soon-green-deep));
+    color: var(--paper-card);
+    box-shadow:
+        0 10px 15px -3px var(--soon-shadow),
+        0 4px 6px -4px var(--soon-shadow);
+    transition: transform 0.3s;
+}
+
+.soon-icon:hover { transform: scale(1.05); }
+
+/* Badge */
+
+.soon-badge {
+    display: inline-block;
+    padding: var(--space-2) 1.25rem;
+    margin-bottom: 1.25rem;
+    border-radius: 9999px;
+    background: linear-gradient(to right, var(--soon-green), var(--soon-green-soft));
+    box-shadow:
+        0 4px 6px -1px var(--soon-shadow),
+        0 2px 4px -2px var(--soon-shadow);
+}
+
+.soon-badge-text {
+    color: var(--paper-card);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+/* Text */
+
+.soon-title {
+    margin-bottom: var(--space-4);
+    font-family: var(--font-body);
+    font-size: 1.875rem;
+    font-weight: 700;
+    line-height: 2.25rem;
+    background: linear-gradient(to right, var(--soon-green), var(--soon-green-deep));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+.soon-description {
+    max-width: 24rem;
+    margin: 0 auto var(--space-6);
+    color: var(--ink-muted);
+    line-height: 1.625;
+}
+
+/* Progress dots */
+
+.soon-progress { margin-top: var(--space-6); }
+
+.soon-dots {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.soon-dot {
+    width: 0.75rem;
+    height: 0.75rem;
+    border-radius: 50%;
+    background: linear-gradient(to right, var(--soon-green), var(--soon-green-soft));
+    box-shadow: 0 1px 2px 0 var(--soon-shadow);
+    animation: soon-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.soon-dot:nth-child(2) { animation-delay: 0.2s; }
+.soon-dot:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes soon-pulse {
+    50% { opacity: 0.5; }
+}
+
+.soon-caption {
+    margin-top: var(--space-4);
+    color: var(--ink-faint);
+    font-size: 0.75rem;
+    letter-spacing: 0.025em;
+}
+
+.soon-line {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    width: 8rem;
+    height: 0.25rem;
+    transform: translateX(-50%);
+    border-radius: 9999px;
+    background: linear-gradient(to right, transparent, var(--soon-green), transparent);
+    opacity: 0.3;
+}
+
+/* Responsive */
+
+@media (max-width: 600px) {
+    .soon-section { padding: var(--space-4); }
+    .soon-stage {
+        min-height: 0;
+        padding: var(--space-4);
+    }
+    .soon-card { padding: var(--space-6) var(--space-5); }
+    .soon-title {
+        font-size: 1.5rem;
+        line-height: 2rem;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .soon-dot { animation: none; }
+    .soon-icon { transition: none; }
+}

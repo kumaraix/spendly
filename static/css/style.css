@@ -134,6 +134,14 @@ a { color: inherit; text-decoration: none; }
 .nav-links a.nav-user { color: var(--ink); }
 .nav-links a.nav-user:hover { color: var(--accent); }
 
+.nav-links a.nav-link--active {
+    color: var(--accent);
+    font-weight: 600;
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 0.45rem;
+}
+
 /* ------------------------------------------------------------------ */
 /* Main                                                                */
 /* ------------------------------------------------------------------ */
@@ -606,5 +614,6 @@ a { color: inherit; text-decoration: none; }
 
 @media (max-width: 600px) {
     .nav-links a:not(.nav-cta) { display: none; }
+    .nav-links a.nav-analytics { display: inline; }
     .hero { padding: 3rem 1rem 2rem; }
 }
