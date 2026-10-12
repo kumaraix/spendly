@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}Analytics · Spendly{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/analytics.css') }}">
+{% endblock %}
+
+{% block content %}
+<section class="soon-section">
+    <div class="soon-stage">
+        <div class="soon-blob soon-blob--top" aria-hidden="true"></div>
+        <div class="soon-blob soon-blob--bottom" aria-hidden="true"></div>
+
+        <div class="soon-card">
+            <div class="soon-corner soon-corner--top" aria-hidden="true"></div>
+            <div class="soon-corner soon-corner--bottom" aria-hidden="true"></div>
+
+            <div class="soon-visual" aria-hidden="true">
+                <div class="soon-glow"></div>
+                <div class="soon-icon">
+                    <svg class="soon-icon-svg" width="48" height="48" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                </div>
+            </div>
+
+            <div class="soon-badge">
+                <span class="soon-badge-text">Coming Soon</span>
+            </div>
+
+            <h1 class="soon-title">Advanced Analytics</h1>
+
+            <p class="soon-description">
+                We're working on powerful insights and visualizations to help you
+                understand your spending patterns better.
+            </p>
+
+            <div class="soon-progress">
+                <div class="soon-dots" aria-hidden="true">
+                    <span class="soon-dot"></span>
+                    <span class="soon-dot"></span>
+                    <span class="soon-dot"></span>
+                </div>
+                <p class="soon-caption">We're crafting something special</p>
+            </div>
+
+            <div class="soon-line" aria-hidden="true"></div>
+        </div>
+    </div>
+</section>
+{% endblock %}

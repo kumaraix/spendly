@@ -24,7 +24,8 @@ spendly/
 │   ├── css/
 │   │   ├── style.css       # Global styles
 │   │   ├── landing.css     # Landing-page-only styles
-│   │   └── profile.css     # Profile-page-only styles (prof-* classes)
+│   │   ├── profile.css     # Profile-page-only styles (prof-* classes)
+│   │   └── analytics.css   # Analytics coming-soon page styles (soon-* classes)
 │   └── js/
 │       └── main.js         # Vanilla JS only
 ├── tests/
@@ -109,6 +110,7 @@ pytest -s
 | `POST /login` | Implemented (Step 3) — checks credentials, sets session `user_id`/`user_name`, redirects to `profile` |
 | `GET /logout` | Implemented (Step 3) — clears session, flashes, redirects to `login` |
 | `GET /profile` | Implemented (Step 5) — logged-in only; renders `profile.html` with the user's details, stats, recent transactions and category breakdown from the DB (`database/queries.py`); stale session → cleared, redirect to `login`. Step 6: optional `?start_date=`/`?end_date=` (YYYY-MM-DD, inclusive) filter stats, transactions and breakdown, with presets; invalid or reversed range → all-time data + inline error (200) |
+| `GET /analytics` | Implemented — logged-in only (`@login_required`); renders the `analytics.html` "Coming Soon" page (from the Figma design). Navbar shows an "Analytics" link only when signed in, marked `nav-link--active` + `aria-current="page"` when `request.endpoint == 'analytics'` |
 | `GET /expenses/add` | Stub — Step 7 |
 | `GET /expenses/<id>/edit` | Stub — Step 8 |
 | `GET /expenses/<id>/delete` | Stub — Step 9 |
