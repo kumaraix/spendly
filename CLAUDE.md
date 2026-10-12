@@ -12,20 +12,22 @@ spendly/
 ├── app.py              # All routes — single file, no blueprints
 ├── database/
 │   ├── db.py           # SQLite helpers: get_db(), init_db(), seed_db(),
-│                       #   get_user_by_email(), create_user()
+│                       #   get_user_by_email(), create_user(), create_expense()
 │   └── queries.py      # Read-only profile queries: get_user_by_id(),
 │                       #   get_summary_stats(), get_recent_transactions(),
 │                       #   get_category_breakdown() — the last three take
 │                       #   optional start_date=/end_date= (YYYY-MM-DD, inclusive)
 ├── templates/
 │   ├── base.html       # Shared layout — all templates must extend this
+│   ├── _flash.html     # Partial: flashed messages ({% include %}, not a page)
 │   └── *.html          # One template per page
 ├── static/
 │   ├── css/
 │   │   ├── style.css       # Global styles
 │   │   ├── landing.css     # Landing-page-only styles
 │   │   ├── profile.css     # Profile-page-only styles (prof-* classes)
-│   │   └── analytics.css   # Analytics coming-soon page styles (soon-* classes)
+│   │   ├── analytics.css   # Analytics coming-soon page styles (soon-* classes)
+│   │   └── expense.css     # Add/edit expense form styles (exp-* classes)
 │   └── js/
 │       └── main.js         # Vanilla JS only
 ├── tests/
@@ -81,8 +83,8 @@ python -m venv venv
 source venv/bin/activate          # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 
-# Run dev server (port 5001)
-python app.py
+# Run dev server (port 5001); debugger only with FLASK_DEBUG=1
+FLASK_DEBUG=1 python app.py
 
 # Run all tests
 pytest
@@ -111,7 +113,7 @@ pytest -s
 | `GET /logout` | Implemented (Step 3) — clears session, flashes, redirects to `login` |
 | `GET /profile` | Implemented (Step 5) — logged-in only; renders `profile.html` with the user's details, stats, recent transactions and category breakdown from the DB (`database/queries.py`); stale session → cleared, redirect to `login`. Step 6: optional `?start_date=`/`?end_date=` (YYYY-MM-DD, inclusive) filter stats, transactions and breakdown, with presets; invalid or reversed range → all-time data + inline error (200) |
 | `GET /analytics` | Implemented — logged-in only (`@login_required`); renders the `analytics.html` "Coming Soon" page (from the Figma design). Navbar shows an "Analytics" link only when signed in, marked `nav-link--active` + `aria-current="page"` when `request.endpoint == 'analytics'` |
-| `GET /expenses/add` | Stub — Step 7 |
+| `GET/POST /expenses/add` | Implemented (Step 7) — logged-in only; GET renders `add_expense.html` with today's date pre-filled; POST checks CSRF, validates with `_validate_expense_form()` (per-field `_parse_*` helpers; reusable for Step 8), inserts via `create_expense()`, flashes "Expense added", redirects to `profile`; invalid input → form re-rendered with inline error and preserved input (400) |
 | `GET /expenses/<id>/edit` | Stub — Step 8 |
 | `GET /expenses/<id>/delete` | Stub — Step 9 |
 
@@ -129,8 +131,11 @@ pytest -s
 - **`database/db.py` and `database/queries.py` only have the helpers listed under Architecture** — do not assume others exist until the step that implements them
 - **Never import `app` at the top of a test file** — `app.py` runs `init_db()`/`seed_db()` on import; use the `app` fixture in `tests/conftest.py` so the real `expense_tracker.db` is never touched
 - **`app.secret_key`** comes from the `SECRET_KEY` env var (dev fallback in `app.py`) — required for `flash()` and sessions
-- **Session holds only `user_id` and `user_name`** — never email/password/hash; login and logout both call `session.clear()` first. Any feature that changes the user's name must update `session["user_name"]`
+- **Session holds only `user_id`, `user_name` and `csrf_token`** — never email/password/hash; login and logout both call `session.clear()` first. Any feature that changes the user's name must update `session["user_name"]`
 - **Protect logged-in pages with `@login_required`** (defined in `app.py`) — it redirects to `login` when `session["user_id"]` is missing
+- **Flash messages render per page** via `{% include "_flash.html" %}` (`login.html`, `profile.html`), not in `base.html` — a page that is the target of a flashing redirect must include it itself
+- **Every state-changing POST form needs CSRF protection** — add `<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">` to the form and call `_check_csrf()` (in `app.py`) first in the POST branch; it `abort(400)`s on a mismatch. Tests set `sess["csrf_token"]` via `client.session_transaction()` and post the same value
+- **Request bodies are capped** at 16 KB (`MAX_CONTENT_LENGTH`) — oversized POSTs get 413
 - **Format money with the `inr` Jinja filter** (`{{ amount|inr }}` → `₹1,23,456.50`, Indian grouping) — never `$` or `"{:,.2f}"`
 - **Date-range filters** go through `_DATE_RANGE_SQL` / `_range_params()` in `database/queries.py` — bounds are always bound with `?`, and validated as strict YYYY-MM-DD in `app.py` before reaching SQL
 - **FK enforcement is manual** — SQLite foreign keys are off by default; `get_db()` must run `PRAGMA foreign_keys = ON` on every connection

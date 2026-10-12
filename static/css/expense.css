@@ -1,0 +1,66 @@
+/* ------------------------------------------------------------------ */
+/* Add / edit expense form (exp-* classes)                            */
+/* ------------------------------------------------------------------ */
+
+/* Amount with ₹ prefix */
+
+.exp-amount { position: relative; }
+
+.exp-currency {
+    position: absolute;
+    left: var(--space-3);
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--ink-muted);
+    pointer-events: none;
+}
+
+/* Left inset of the ₹ glyph plus roughly its width (~1.1em at body size). */
+.exp-amount-input { padding-left: calc(var(--space-3) + 1.1em); }
+
+/* Category select */
+
+.exp-select-wrap { position: relative; }
+
+.exp-select {
+    appearance: none;
+    -webkit-appearance: none;
+    padding-right: var(--space-7);
+    cursor: pointer;
+}
+
+.exp-select:invalid { color: var(--ink-faint); }
+
+.exp-select option { color: var(--ink); }
+
+.exp-select-wrap::after {
+    content: "";
+    position: absolute;
+    right: var(--space-4);
+    top: 50%;
+    width: 0.45rem;
+    height: 0.45rem;
+    border-right: 2px solid var(--ink-muted);
+    border-bottom: 2px solid var(--ink-muted);
+    transform: translateY(-70%) rotate(45deg);
+    pointer-events: none;
+}
+
+.exp-optional {
+    color: var(--ink-faint);
+    font-weight: 400;
+}
+
+/* Actions */
+
+.exp-actions {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+}
+
+.exp-cancel { text-align: center; }
+
+@media (max-width: 600px) {
+    .exp-section .auth-card { padding: var(--space-5); }
+}

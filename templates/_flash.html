@@ -1,0 +1,7 @@
+{# Flashed messages. Include where a flashing redirect lands; set
+   flash_class (via {% with %}) to add a page-specific class. #}
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% for category, message in messages %}
+<div class="{{ 'auth-error' if category == 'error' else 'auth-success' }}{% if flash_class %} {{ flash_class }}{% endif %}" role="status">{{ message }}</div>
+{% endfor %}
+{% endwith %}

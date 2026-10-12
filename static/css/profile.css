@@ -31,6 +31,15 @@
     padding: var(--space-6);
 }
 
+.prof-header-action {
+    margin-left: auto;
+    flex-shrink: 0;
+}
+
+.prof-flash {
+    margin-bottom: 0;
+}
+
 .prof-avatar {
     flex-shrink: 0;
     width: 64px;
@@ -214,6 +223,13 @@
     text-align: center;
 }
 
+.prof-empty-link {
+    display: block;
+    margin-top: var(--space-2);
+    color: var(--accent);
+    font-weight: 500;
+}
+
 /* Recent transactions */
 
 .prof-table-wrap { overflow-x: auto; }
@@ -330,6 +346,11 @@
         flex-direction: column;
         align-items: flex-start;
         padding: var(--space-5);
+    }
+    .prof-header-action {
+        margin-left: 0;
+        align-self: stretch;
+        text-align: center;
     }
     .prof-stats { grid-template-columns: 1fr; }
     .prof-filter-form {
