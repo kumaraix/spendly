@@ -1,4 +1,5 @@
 import os
+from datetime import date, timedelta
 from functools import wraps
 
 from flask import Flask, flash, redirect, render_template, request, session, url_for
@@ -67,32 +68,121 @@ def _initials(name):
 
 
 # ------------------------------------------------------------------ #
+# Profile: date filter                                                #
+# ------------------------------------------------------------------ #
+
+_DATE_ERRORS = {
+    "format": "Dates must be valid and in YYYY-MM-DD format — showing all time instead.",
+    "order": "The start date must be on or before the end date — showing all time instead.",
+}
+
+
+def _today():
+    """Wrapped so tests can monkeypatch the current date."""
+    return date.today()
+
+
+def _parse_iso_date(value):
+    """Return value as a strict YYYY-MM-DD string ('' → None); raise ValueError otherwise."""
+    value = (value or "").strip()
+    if not value:
+        return None
+    # fromisoformat also accepts 20261012 and 2026-W41-1; insist on YYYY-MM-DD.
+    if date.fromisoformat(value).isoformat() != value:
+        raise ValueError(value)
+    return value
+
+
+def _parse_date_range(args):
+    """Return (start_date, end_date, error) from request args.
+
+    On any invalid input both bounds are None so the page shows all time.
+    """
+    try:
+        start_date = _parse_iso_date(args.get("start_date"))
+        end_date = _parse_iso_date(args.get("end_date"))
+    except ValueError:
+        return None, None, _DATE_ERRORS["format"]
+    if start_date and end_date and start_date > end_date:
+        return None, None, _DATE_ERRORS["order"]
+    return start_date, end_date, None
+
+
+def _date_presets(start_date, end_date, today=None):
+    """Preset ranges relative to today, each flagged active if it matches.
+
+    "Last 3 months" runs from the 1st of the month two months ago to today.
+    """
+    today = today or _today()
+    first_this = today.replace(day=1)
+    last_prev = first_this - timedelta(days=1)
+    year, month = today.year, today.month - 2
+    if month < 1:
+        year, month = year - 1, month + 12
+    ranges = [
+        ("This month", first_this.isoformat(), today.isoformat()),
+        ("Last month", last_prev.replace(day=1).isoformat(), last_prev.isoformat()),
+        ("Last 3 months", date(year, month, 1).isoformat(), today.isoformat()),
+        ("All time", None, None),
+    ]
+    return [
+        {
+            "label": label,
+            "start_date": start,
+            "end_date": end,
+            "active": (start, end) == (start_date, end_date),
+        }
+        for label, start, end in ranges
+    ]
+
+
+def _format_day(iso_date):
+    """'2026-10-01' → '1 Oct 2026' (portable — no %-d)."""
+    d = date.fromisoformat(iso_date)
+    return f"{d.day} {d.strftime('%b %Y')}"
+
+
+def _range_label(start_date, end_date):
+    if start_date and end_date:
+        return f"Showing {_format_day(start_date)} – {_format_day(end_date)}"
+    if start_date:
+        return f"Showing from {_format_day(start_date)}"
+    if end_date:
+        return f"Showing up to {_format_day(end_date)}"
+    return "Showing all time"
+
+
+# ------------------------------------------------------------------ #
 # Profile: transaction history                                        #
 # ------------------------------------------------------------------ #
 
-def _profile_recent_expenses(user_id):
+def _profile_recent_expenses(user_id, start_date=None, end_date=None):
     """Recent expenses shaped for profile.html's recent_expenses."""
-    return get_recent_transactions(user_id)
+    return get_recent_transactions(
+        user_id, start_date=start_date, end_date=end_date
+    )
 
 
 # ------------------------------------------------------------------ #
 # Profile: summary stats                                              #
 # ------------------------------------------------------------------ #
 
-def _profile_stats(user_id):
+def _profile_stats(user_id, start_date=None, end_date=None):
     """Summary stats shaped for profile.html's stats."""
-    return get_summary_stats(user_id)
+    return get_summary_stats(user_id, start_date=start_date, end_date=end_date)
 
 
 # ------------------------------------------------------------------ #
 # Profile: category breakdown                                         #
 # ------------------------------------------------------------------ #
 
-def _profile_category_breakdown(user_id):
+def _profile_category_breakdown(user_id, start_date=None, end_date=None):
     """Category totals shaped for profile.html's category_breakdown."""
     return [
         {"category": c["name"], "total": c["amount"], "percent": c["pct"]}
-        for c in get_category_breakdown(user_id)
+        for c in get_category_breakdown(
+            user_id, start_date=start_date, end_date=end_date
+        )
     ]
 
 
@@ -202,12 +292,20 @@ def profile():
     if user is None:
         session.clear()
         return redirect(url_for("login"))
+    start_date, end_date, filter_error = _parse_date_range(request.args)
     return render_template(
         "profile.html",
         user={**user, "initials": _initials(user["name"])},
-        stats=_profile_stats(user_id),
-        recent_expenses=_profile_recent_expenses(user_id),
-        category_breakdown=_profile_category_breakdown(user_id),
+        stats=_profile_stats(user_id, start_date, end_date),
+        recent_expenses=_profile_recent_expenses(user_id, start_date, end_date),
+        category_breakdown=_profile_category_breakdown(
+            user_id, start_date, end_date
+        ),
+        start_date=start_date,
+        end_date=end_date,
+        range_label=_range_label(start_date, end_date),
+        presets=_date_presets(start_date, end_date),
+        filter_error=filter_error,
     )
 
 

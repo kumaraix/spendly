@@ -15,14 +15,16 @@ spendly/
 │                       #   get_user_by_email(), create_user()
 │   └── queries.py      # Read-only profile queries: get_user_by_id(),
 │                       #   get_summary_stats(), get_recent_transactions(),
-│                       #   get_category_breakdown()
+│                       #   get_category_breakdown() — the last three take
+│                       #   optional start_date=/end_date= (YYYY-MM-DD, inclusive)
 ├── templates/
 │   ├── base.html       # Shared layout — all templates must extend this
 │   └── *.html          # One template per page
 ├── static/
 │   ├── css/
 │   │   ├── style.css       # Global styles
-│   │   └── landing.css     # Landing-page-only styles
+│   │   ├── landing.css     # Landing-page-only styles
+│   │   └── profile.css     # Profile-page-only styles (prof-* classes)
 │   └── js/
 │       └── main.js         # Vanilla JS only
 ├── tests/
@@ -106,7 +108,7 @@ pytest -s
 | `GET /login` | Implemented — renders `login.html`; redirects to `profile` if signed in |
 | `POST /login` | Implemented (Step 3) — checks credentials, sets session `user_id`/`user_name`, redirects to `profile` |
 | `GET /logout` | Implemented (Step 3) — clears session, flashes, redirects to `login` |
-| `GET /profile` | Implemented (Step 5) — logged-in only; renders `profile.html` with the user's details, stats, recent transactions and category breakdown from the DB (`database/queries.py`); stale session → cleared, redirect to `login` |
+| `GET /profile` | Implemented (Step 5) — logged-in only; renders `profile.html` with the user's details, stats, recent transactions and category breakdown from the DB (`database/queries.py`); stale session → cleared, redirect to `login`. Step 6: optional `?start_date=`/`?end_date=` (YYYY-MM-DD, inclusive) filter stats, transactions and breakdown, with presets; invalid or reversed range → all-time data + inline error (200) |
 | `GET /expenses/add` | Stub — Step 7 |
 | `GET /expenses/<id>/edit` | Stub — Step 8 |
 | `GET /expenses/<id>/delete` | Stub — Step 9 |
@@ -128,5 +130,6 @@ pytest -s
 - **Session holds only `user_id` and `user_name`** — never email/password/hash; login and logout both call `session.clear()` first. Any feature that changes the user's name must update `session["user_name"]`
 - **Protect logged-in pages with `@login_required`** (defined in `app.py`) — it redirects to `login` when `session["user_id"]` is missing
 - **Format money with the `inr` Jinja filter** (`{{ amount|inr }}` → `₹1,23,456.50`, Indian grouping) — never `$` or `"{:,.2f}"`
+- **Date-range filters** go through `_DATE_RANGE_SQL` / `_range_params()` in `database/queries.py` — bounds are always bound with `?`, and validated as strict YYYY-MM-DD in `app.py` before reaching SQL
 - **FK enforcement is manual** — SQLite foreign keys are off by default; `get_db()` must run `PRAGMA foreign_keys = ON` on every connection
 - The app runs on **port 5001**, not the Flask default 5000 — don't change this
