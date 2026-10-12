@@ -19,6 +19,40 @@
             </div>
         </header>
 
+        {% set is_filtered = start_date or end_date %}
+        <section class="prof-filter" aria-label="Filter by date">
+            <div class="prof-filter-top">
+                <p class="prof-range-label">{{ range_label or "Showing all time" }}</p>
+                {% if is_filtered %}
+                <a class="prof-filter-clear" href="{{ url_for('profile') }}">Clear</a>
+                {% endif %}
+            </div>
+            <nav class="prof-presets" aria-label="Date presets">
+                {% for preset in presets or [] %}
+                <a class="prof-preset{% if preset.active %} prof-preset--active{% endif %}"
+                   href="{{ url_for('profile', start_date=preset.start_date, end_date=preset.end_date) }}"
+                   {% if preset.active %}aria-current="true"{% endif %}>{{ preset.label }}</a>
+                {% endfor %}
+            </nav>
+            <form class="prof-filter-form" method="get" action="{{ url_for('profile') }}">
+                <div class="prof-filter-field">
+                    <label class="prof-filter-label" for="start_date">From</label>
+                    <input class="form-input prof-date-input" type="date" id="start_date"
+                           name="start_date" value="{{ start_date or '' }}">
+                </div>
+                <div class="prof-filter-field">
+                    <label class="prof-filter-label" for="end_date">To</label>
+                    <input class="form-input prof-date-input" type="date" id="end_date"
+                           name="end_date" value="{{ end_date or '' }}">
+                </div>
+                <button type="submit" class="btn-primary prof-filter-apply">Apply</button>
+            </form>
+        </section>
+
+        {% if filter_error %}
+        <div class="auth-error prof-filter-error" role="alert">{{ filter_error }}</div>
+        {% endif %}
+
         <section class="prof-stats" aria-label="Spending summary">
             <div class="prof-stat">
                 <span class="prof-stat-label">Total spent</span>
@@ -61,7 +95,7 @@
                     </table>
                 </div>
                 {% else %}
-                <p class="prof-empty">No expenses yet</p>
+                <p class="prof-empty">{% if is_filtered %}No expenses in this period{% else %}No expenses yet{% endif %}</p>
                 {% endif %}
             </section>
 
@@ -80,7 +114,7 @@
                     {% endfor %}
                 </ul>
                 {% else %}
-                <p class="prof-empty">No spending to break down yet</p>
+                <p class="prof-empty">{% if is_filtered %}No spending in this period{% else %}No spending to break down yet{% endif %}</p>
                 {% endif %}
             </section>
         </div>
