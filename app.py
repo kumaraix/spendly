@@ -25,9 +25,11 @@ from database.db import (
     get_user_by_email,
     init_db,
     seed_db,
+    update_expense,
 )
 from database.queries import (
     get_category_breakdown,
+    get_expense,
     get_recent_transactions,
     get_summary_stats,
     get_user_by_id,
@@ -82,6 +84,14 @@ def _check_csrf():
     submitted = request.form.get("csrf_token", "")
     if not expected or not hmac.compare_digest(expected, submitted):
         abort(400)
+
+
+@app.after_request
+def _no_store_when_signed_in(response):
+    """Keep signed-in pages (expense data, CSRF tokens) out of browser caches."""
+    if session.get("user_id") and request.endpoint != "static":
+        response.headers["Cache-Control"] = "no-store"
+    return response
 
 
 @app.template_filter("inr")
@@ -271,15 +281,40 @@ def _validate_expense_form(form):
     return values, None
 
 
-def _render_expense_form(form, error=None, status=200):
-    """Render add_expense.html with the category list and today's date."""
+def _render_expense_form(form, error=None, status=200,
+                         template="add_expense.html", **context):
+    """Render an add/edit expense form with the category list and today's date."""
     return render_template(
-        "add_expense.html",
+        template,
         categories=CATEGORIES,
         today=_today().isoformat(),
         form=form,
         error=error,
+        **context,
     ), status
+
+
+def _render_edit_form(form, expense_id, error=None, status=200):
+    """Render edit_expense.html for expense_id."""
+    return _render_expense_form(
+        form, error, status,
+        template="edit_expense.html",
+        expense_id=expense_id,
+    )
+
+
+def _expense_form_values(expense):
+    """A stored expense as form strings, shaped like request.form.
+
+    The amount is a plain 2dp string for the number input — not display
+    formatting, which goes through the inr filter.
+    """
+    return {
+        "amount": f"{expense['amount']:.2f}",
+        "category": expense["category"],
+        "date": expense["date"],
+        "description": expense["description"],
+    }
 
 
 # ------------------------------------------------------------------ #
@@ -472,14 +507,41 @@ def add_expense():
     return redirect(url_for("profile"))
 
 
+@app.route("/expenses/<int:id>/edit", methods=["GET", "POST"])
+@login_required
+def edit_expense(id):
+    user_id = session["user_id"]
+    expense = get_expense(id, user_id)
+    if expense is None:
+        # Not found and not owned get the same response.
+        abort(404)
+
+    if request.method == "GET":
+        return _render_edit_form(_expense_form_values(expense), id)
+
+    _check_csrf()
+    values, error = _validate_expense_form(request.form)
+    if error:
+        return _render_edit_form(request.form, id, error, 400)
+
+    updated = update_expense(
+        id,
+        user_id,
+        amount=values["amount"],
+        category=values["category"],
+        expense_date=values["date"],
+        description=values["description"],
+    )
+    if not updated:
+        # The expense was deleted after the ownership check above.
+        abort(404)
+    flash("Expense updated", "success")
+    return redirect(url_for("profile"))
+
+
 # ------------------------------------------------------------------ #
 # Placeholder routes — students will implement these                  #
 # ------------------------------------------------------------------ #
-
-
-@app.route("/expenses/<int:id>/edit")
-def edit_expense(id):
-    return "Edit expense — coming in Step 8"
 
 
 @app.route("/expenses/<int:id>/delete")

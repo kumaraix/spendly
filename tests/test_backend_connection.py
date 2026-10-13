@@ -157,7 +157,7 @@ def test_recent_transactions_demo_returns_seed_rows_newest_first(demo_id):
     assert len(rows) == len(db.SEED_EXPENSES) == 8
     for row in rows:
         assert isinstance(row, dict)
-        assert set(row) == {"date", "description", "category", "amount"}
+        assert set(row) == {"id", "date", "description", "category", "amount"}
     dates = [row["date"] for row in rows]
     assert dates == sorted(dates, reverse=True)
 

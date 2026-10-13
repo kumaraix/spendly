@@ -432,14 +432,7 @@ class TestProfileIntegration:
 # ------------------------------------------------------------------ #
 
 class TestStubsUntouched:
-    @pytest.mark.parametrize(
-        "path, text",
-        [
-            ("/expenses/1/edit", "coming in Step 8"),
-            ("/expenses/1/delete", "coming in Step 9"),
-        ],
-    )
-    def test_stub_routes_still_return_stub_text(self, client, path, text):
-        resp = client.get(path)
+    def test_delete_stub_still_returns_stub_text(self, client):
+        resp = client.get("/expenses/1/delete")
         assert resp.status_code == 200
-        assert text in resp.get_data(as_text=True)
+        assert "coming in Step 9" in resp.get_data(as_text=True)
