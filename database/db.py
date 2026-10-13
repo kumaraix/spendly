@@ -174,3 +174,27 @@ def create_expense(user_id, amount, category, expense_date, description=None):
         raise
     finally:
         conn.close()
+
+
+def update_expense(expense_id, user_id, amount, category, expense_date,
+                   description=None):
+    """Update one expense owned by user_id.
+
+    Return True if the row was updated, False if expense_id does not exist
+    or belongs to another user.
+    """
+    conn = get_db()
+    try:
+        cur = conn.execute(
+            "UPDATE expenses "
+            "SET amount = ?, category = ?, date = ?, description = ? "
+            "WHERE id = ? AND user_id = ?",
+            (amount, category, expense_date, description, expense_id, user_id),
+        )
+        conn.commit()
+        return cur.rowcount == 1
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()

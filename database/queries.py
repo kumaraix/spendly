@@ -78,7 +78,7 @@ def get_recent_transactions(user_id, limit=10, start_date=None, end_date=None):
     conn = get_db()
     try:
         rows = conn.execute(
-            "SELECT date, description, category, amount FROM expenses "
+            "SELECT id, date, description, category, amount FROM expenses "
             "WHERE user_id = ?" + _DATE_RANGE_SQL
             + " ORDER BY date DESC, id DESC LIMIT ?",
             (user_id, *_range_params(start_date, end_date), limit),
@@ -87,6 +87,7 @@ def get_recent_transactions(user_id, limit=10, start_date=None, end_date=None):
         conn.close()
     return [
         {
+            "id": row["id"],
             "date": row["date"],
             "description": row["description"] or "",
             "category": row["category"],
@@ -94,6 +95,31 @@ def get_recent_transactions(user_id, limit=10, start_date=None, end_date=None):
         }
         for row in rows
     ]
+
+
+def get_expense(expense_id, user_id):
+    """Return one expense if user_id owns expense_id, else None.
+
+    Not found and not owned look the same, so callers can't tell them apart.
+    """
+    conn = get_db()
+    try:
+        row = conn.execute(
+            "SELECT id, amount, category, date, description FROM expenses "
+            "WHERE id = ? AND user_id = ?",
+            (expense_id, user_id),
+        ).fetchone()
+    finally:
+        conn.close()
+    if row is None:
+        return None
+    return {
+        "id": row["id"],
+        "amount": row["amount"],
+        "category": row["category"],
+        "date": row["date"],
+        "description": row["description"] or "",
+    }
 
 
 # ------------------------------------------------------------------ #

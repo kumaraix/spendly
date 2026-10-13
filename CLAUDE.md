@@ -12,14 +12,20 @@ spendly/
 ├── app.py              # All routes — single file, no blueprints
 ├── database/
 │   ├── db.py           # SQLite helpers: get_db(), init_db(), seed_db(),
-│                       #   get_user_by_email(), create_user(), create_expense()
-│   └── queries.py      # Read-only profile queries: get_user_by_id(),
+│                       #   get_user_by_email(), create_user(), create_expense(),
+│                       #   update_expense()
+│   └── queries.py      # Read-only page queries:
+│                       #   get_user_by_id()
 │                       #   get_summary_stats(), get_recent_transactions(),
-│                       #   get_category_breakdown() — the last three take
-│                       #   optional start_date=/end_date= (YYYY-MM-DD, inclusive)
+│                       #     get_category_breakdown() — take optional
+│                       #     start_date=/end_date= (YYYY-MM-DD, inclusive)
+│                       #   get_expense(expense_id, user_id) — owner-only lookup,
+│                       #     None when missing or another user's
 ├── templates/
 │   ├── base.html       # Shared layout — all templates must extend this
 │   ├── _flash.html     # Partial: flashed messages ({% include %}, not a page)
+│   ├── _expense_fields.html  # Partial: amount/category/date/description
+│                       #   fields shared by add_expense.html and edit_expense.html
 │   └── *.html          # One template per page
 ├── static/
 │   ├── css/
@@ -114,7 +120,7 @@ pytest -s
 | `GET /profile` | Implemented (Step 5) — logged-in only; renders `profile.html` with the user's details, stats, recent transactions and category breakdown from the DB (`database/queries.py`); stale session → cleared, redirect to `login`. Step 6: optional `?start_date=`/`?end_date=` (YYYY-MM-DD, inclusive) filter stats, transactions and breakdown, with presets; invalid or reversed range → all-time data + inline error (200) |
 | `GET /analytics` | Implemented — logged-in only (`@login_required`); renders the `analytics.html` "Coming Soon" page (from the Figma design). Navbar shows an "Analytics" link only when signed in, marked `nav-link--active` + `aria-current="page"` when `request.endpoint == 'analytics'` |
 | `GET/POST /expenses/add` | Implemented (Step 7) — logged-in only; GET renders `add_expense.html` with today's date pre-filled; POST checks CSRF, validates with `_validate_expense_form()` (per-field `_parse_*` helpers; reusable for Step 8), inserts via `create_expense()`, flashes "Expense added", redirects to `profile`; invalid input → form re-rendered with inline error and preserved input (400) |
-| `GET /expenses/<id>/edit` | Stub — Step 8 |
+| `GET/POST /expenses/<id>/edit` | Implemented (Step 8) — logged-in, owner-only: `get_expense(id, user_id)` → `abort(404)` when missing or another user's (checked before CSRF/validation); GET renders `edit_expense.html` pre-filled; POST checks CSRF, validates with `_validate_expense_form()`, updates via `update_expense()`, flashes "Expense updated", redirects to `profile`; invalid input → 400 with inline error and preserved input. Profile's recent transactions link each row to it |
 | `GET /expenses/<id>/delete` | Stub — Step 9 |
 
 **Do not implement a stub route unless the active task explicitly targets that step.**

@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block title %}Edit expense · Spendly{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/expense.css') }}">
+{% endblock %}
+
+{% block content %}
+<section class="auth-section exp-section">
+    <div class="auth-container">
+
+        <div class="auth-header">
+            <h1 class="auth-title">Edit expense</h1>
+            <p class="auth-subtitle">Update this spend</p>
+        </div>
+
+        <div class="auth-card">
+            {% if error %}
+            <div class="auth-error" role="alert">{{ error }}</div>
+            {% endif %}
+
+            <form method="post" action="{{ url_for('edit_expense', id=expense_id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                {% include "_expense_fields.html" %}
+
+                <div class="exp-actions">
+                    <button type="submit" class="btn-submit">Save changes</button>
+                    <a class="btn-ghost exp-cancel" href="{{ url_for('profile') }}">Cancel</a>
+                </div>
+            </form>
+        </div>
+
+    </div>
+</section>
+{% endblock %}

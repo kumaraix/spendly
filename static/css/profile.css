@@ -281,6 +281,19 @@
     font-variant-numeric: tabular-nums;
 }
 
+.prof-table .prof-actions {
+    text-align: right;
+    white-space: nowrap;
+}
+
+.prof-edit-link {
+    color: var(--accent);
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.prof-edit-link:hover { text-decoration: underline; }
+
 .prof-pill {
     display: inline-block;
     background: var(--paper-warm);
@@ -359,4 +372,5 @@
     }
     .prof-filter-field { flex: none; }
     .prof-filter-apply { width: 100%; }
+    .prof-table td { padding: var(--space-3) var(--space-2); }
 }
